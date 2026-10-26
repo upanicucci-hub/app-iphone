@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <!-- Fa sì che la pagina si adatti alla larghezza dello schermo dell'iPhone -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Quando la aggiungi alla schermata Home, si apre a tutto schermo come un'app -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Offerte PC AI">
+  <title>Offerte PC AI</title>
+  <style>
+    body {
+      font-family: -apple-system, sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      text-align: center;
+      background: #f2f2f7;
+      color: #1c1c1e;
+    }
+    button {
+      font-size: 18px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      background: #007aff;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Ciao Umberto! 👋</h1>
+  <p>Questa è la prima pagina di prova della tua app.</p>
+  <button id="prova">Toccami</button>
+  <p id="messaggio"></p>
+
+  <script>
+    // Un piccolo programma JavaScript: quando tocchi il pulsante, scrive un messaggio.
+    // (In Python sarebbe una funzione collegata a un evento.)
+    document.getElementById("prova").addEventListener("click", function () {
+      document.getElementById("messaggio").textContent = "Funziona! JavaScript è attivo.";
+    });
+  </script>
+</body>
+</html>
