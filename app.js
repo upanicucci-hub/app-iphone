@@ -145,8 +145,13 @@ Requisiti obbligatori:
 Uso previsto: lavoro generale, programmazione, foto e video.
 Controlla che prezzo e disponibilità siano attuali. Il link deve portare alla pagina del prodotto nel negozio.
 
+Restituisci sempre 3 offerte. Se non ne trovi 3 che rispettano TUTTI i requisiti, completa la lista
+con le offerte più vicine e scrivi nel campo "compromesso" quale requisito non rispettano
+(per esempio "16 GB di RAM invece di 32"). Per le offerte che rispettano tutto, lascia "compromesso" vuoto.
+
 Alla fine rispondi SOLO con un oggetto JSON, senza altro testo, in questo formato:
-{"offerte": [{"nome": "...", "prezzo": "1.799 €", "negozio": "...", "link": "https://...", "motivo": "una o due frasi in italiano"}]}`;
+{"nota": "una frase in italiano sulla situazione del mercato o sulle difficoltà incontrate",
+ "offerte": [{"nome": "...", "prezzo": "1.799 €", "negozio": "...", "link": "https://...", "motivo": "una o due frasi in italiano", "compromesso": ""}]}`;
 
 // Prezzi di Sonnet 5.5 in dollari, per stimare il costo di ogni ricerca
 const COSTO_INPUT = 2 / 1000000;     // $ per token letto
@@ -175,7 +180,8 @@ async function chiamaClaude(chiave, messaggi) {
       max_tokens: 16000,
       output_config: { effort: "medium" },
       fallbacks: "default",
-      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }],
+      // Al massimo 8 ricerche web per ogni domanda (circa 8 centesimi)
+      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 8 }],
       messages: messaggi,
     }),
   });
@@ -225,10 +231,13 @@ async function cercaOfferte(chiave) {
     .map((blocco) => blocco.text)
     .join("");
 
-  return { offerte: estraiOfferte(testo), costo: costo };
+  const esito = estraiOfferte(testo);
+  esito.costo = costo;
+  return esito;   // { nota, offerte, costo }
 }
 
-// Tira fuori il JSON dalla risposta, anche se Claude ci ha messo testo intorno
+// Tira fuori il JSON dalla risposta, anche se Claude ci ha messo testo intorno.
+// Restituisce { nota, offerte }.
 function estraiOfferte(testo) {
   const inizio = testo.indexOf("{");
   const fine = testo.lastIndexOf("}");
@@ -237,18 +246,29 @@ function estraiOfferte(testo) {
   }
   try {
     const oggetto = JSON.parse(testo.slice(inizio, fine + 1));   // come json.loads
-    return oggetto.offerte || [];
+    return { nota: oggetto.nota || "", offerte: oggetto.offerte || [] };
   } catch (errore) {
     throw new Error("Risposta di Claude non leggibile. Riprova.");
   }
 }
 
 // Mostra le offerte come elenco semplice (nel pezzo 4 diventeranno schede)
-function mostraOfferte(offerte) {
+function mostraOfferte(nota, offerte) {
   risultati.textContent = "";   // svuoto i risultati precedenti
 
+  // La nota di Claude sulla situazione (es. "pochi modelli con 32 GB sotto i 3.000 €")
+  if (nota) {
+    const paragrafoNota = document.createElement("p");
+    paragrafoNota.className = "nota centrato";
+    paragrafoNota.textContent = "💬 " + nota;
+    risultati.appendChild(paragrafoNota);
+  }
+
   if (offerte.length === 0) {
-    risultati.textContent = "Nessuna offerta trovata con questi criteri.";
+    const vuoto = document.createElement("p");
+    vuoto.className = "nota centrato";
+    vuoto.textContent = "Nessuna offerta trovata con questi criteri.";
+    risultati.appendChild(vuoto);
     return;
   }
 
@@ -270,6 +290,14 @@ function mostraOfferte(offerte) {
     motivo.className = "nota";
     motivo.textContent = offerta.motivo || "";
     riquadro.appendChild(motivo);
+
+    // Se l'offerta non rispetta tutti i requisiti, lo dico chiaramente
+    if (offerta.compromesso) {
+      const compromesso = document.createElement("p");
+      compromesso.className = "compromesso";
+      compromesso.textContent = "⚠️ Compromesso: " + offerta.compromesso;
+      riquadro.appendChild(compromesso);
+    }
 
     // Mostro il link solo se è un vero indirizzo web sicuro
     if (typeof offerta.link === "string" && offerta.link.startsWith("https://")) {
@@ -299,7 +327,7 @@ pulsanteCerca.addEventListener("click", async function () {
 
   try {
     const esito = await cercaOfferte(chiave);
-    mostraOfferte(esito.offerte);
+    mostraOfferte(esito.nota, esito.offerte);
     messaggio.textContent = "Costo di questa ricerca: circa " + esito.costo.toFixed(2) + " $";
   } catch (errore) {
     messaggio.textContent = "⚠️ " + errore.message;

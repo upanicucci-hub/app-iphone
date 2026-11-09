@@ -131,6 +131,11 @@ a {
   margin: 0 0 6px;
 }
 
+.compromesso {
+  color: #ff9500;
+  font-size: 15px;
+}
+
 .errore {
   color: #ff3b30;
   font-size: 15px;
