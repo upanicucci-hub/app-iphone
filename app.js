@@ -205,6 +205,8 @@ async function cercaOfferte(chiave) {
   const messaggi = [{ role: "user", content: ISTRUZIONI }];
   let costo = 0;
   let dati;
+  // Per capire come è andata la ricerca web: quante riuscite e quali errori
+  const ricerche = { riuscite: 0, errori: {} };
 
   // Le ricerche web lunghe possono "mettersi in pausa" (pause_turn):
   // in quel caso rimando la conversazione e Claude continua da dove era rimasto.
@@ -216,6 +218,18 @@ async function cercaOfferte(chiave) {
     costo += (uso.input_tokens || 0) * COSTO_INPUT
            + (uso.output_tokens || 0) * COSTO_OUTPUT
            + ricercheWeb * COSTO_RICERCA_WEB;
+
+    // Ogni risultato di ricerca web è una lista di pagine se è andato bene,
+    // oppure un oggetto con "error_code" se è andato storto.
+    dati.content.forEach(function (blocco) {
+      if (blocco.type !== "web_search_tool_result") return;
+      if (Array.isArray(blocco.content)) {
+        ricerche.riuscite++;
+      } else {
+        const codice = (blocco.content && blocco.content.error_code) || "sconosciuto";
+        ricerche.errori[codice] = (ricerche.errori[codice] || 0) + 1;
+      }
+    });
 
     if (dati.stop_reason !== "pause_turn") break;
     messaggi.push({ role: "assistant", content: dati.content });
@@ -233,7 +247,8 @@ async function cercaOfferte(chiave) {
 
   const esito = estraiOfferte(testo);
   esito.costo = costo;
-  return esito;   // { nota, offerte, costo }
+  esito.ricerche = ricerche;
+  return esito;   // { nota, offerte, costo, ricerche }
 }
 
 // Tira fuori il JSON dalla risposta, anche se Claude ci ha messo testo intorno.
@@ -328,7 +343,14 @@ pulsanteCerca.addEventListener("click", async function () {
   try {
     const esito = await cercaOfferte(chiave);
     mostraOfferte(esito.nota, esito.offerte);
-    messaggio.textContent = "Costo di questa ricerca: circa " + esito.costo.toFixed(2) + " $";
+    // Riepilogo: costo e come sono andate le ricerche web
+    let riepilogo = "Costo di questa ricerca: circa " + esito.costo.toFixed(2) + " $"
+                  + " · Ricerche web riuscite: " + esito.ricerche.riuscite;
+    // Object.entries è come dict.items() in Python
+    Object.entries(esito.ricerche.errori).forEach(function ([codice, quante]) {
+      riepilogo += " · Errore " + codice + ": " + quante;
+    });
+    messaggio.textContent = riepilogo;
   } catch (errore) {
     messaggio.textContent = "⚠️ " + errore.message;
   } finally {
