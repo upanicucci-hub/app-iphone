@@ -1,0 +1,96 @@
+/* ===== Colori =====
+   Le "variabili" CSS sono come le costanti in Python:
+   le definisco una volta e le uso ovunque. */
+:root {
+  --sfondo: #f2f2f7;
+  --riquadro: #ffffff;
+  --testo: #1c1c1e;
+  --testo-secondario: #6e6e73;
+  --blu: #007aff;
+  --bordo: #d1d1d6;
+}
+
+/* Se l'iPhone è in modalità scura, cambio solo i colori */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sfondo: #000000;
+    --riquadro: #1c1c1e;
+    --testo: #f2f2f7;
+    --testo-secondario: #98989d;
+    --blu: #0a84ff;
+    --bordo: #38383a;
+  }
+}
+
+/* ===== Pagina ===== */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  margin: 0;
+  /* env(safe-area-inset-...) lascia spazio alla tacca e alla barra in basso */
+  padding: calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+  background: var(--sfondo);
+  color: var(--testo);
+  line-height: 1.4;
+}
+
+main {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: 28px;
+  margin: 8px 0 4px;
+}
+
+h2 {
+  font-size: 17px;
+  margin: 0 0 8px;
+}
+
+.sottotitolo,
+.nota {
+  color: var(--testo-secondario);
+  font-size: 15px;
+  margin: 0;
+}
+
+.centrato {
+  text-align: center;
+  margin-top: 12px;
+}
+
+/* ===== Riquadri bianchi con angoli arrotondati, stile iPhone ===== */
+.riquadro {
+  background: var(--riquadro);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.criteri {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 15px;
+}
+
+/* ===== Pulsante principale ===== */
+button {
+  font-size: 17px;
+  font-weight: 600;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: var(--blu);
+  color: white;
+  width: 100%;
+}
+
+button:disabled {
+  opacity: 0.4;
+}

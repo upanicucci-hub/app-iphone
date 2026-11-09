@@ -2,43 +2,50 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <!-- Fa sì che la pagina si adatti alla larghezza dello schermo dell'iPhone -->
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Fa sì che la pagina si adatti alla larghezza dello schermo dell'iPhone.
+       viewport-fit=cover usa anche lo spazio vicino alla "tacca" in alto. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <!-- Quando la aggiungi alla schermata Home, si apre a tutto schermo come un'app -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Offerte PC AI">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Offerte PC AI</title>
-  <style>
-    body {
-      font-family: -apple-system, sans-serif;
-      margin: 0;
-      padding: 40px 20px;
-      text-align: center;
-      background: #f2f2f7;
-      color: #1c1c1e;
-    }
-    button {
-      font-size: 18px;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 12px;
-      background: #007aff;
-      color: white;
-    }
-  </style>
+  <!-- L'aspetto grafico sta in un file a parte -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Ciao Umberto! 👋</h1>
-  <p>Questa è la prima pagina di prova della tua app.</p>
-  <button id="prova">Toccami</button>
-  <p id="messaggio"></p>
+  <header>
+    <h1>Offerte PC AI</h1>
+    <p class="sottotitolo">I 3 migliori portatili Copilot+ del momento</p>
+  </header>
 
-  <script>
-    // Un piccolo programma JavaScript: quando tocchi il pulsante, scrive un messaggio.
-    // (In Python sarebbe una funzione collegata a un evento.)
-    document.getElementById("prova").addEventListener("click", function () {
-      document.getElementById("messaggio").textContent = "Funziona! JavaScript è attivo.";
-    });
-  </script>
+  <main>
+    <!-- Riquadro 1: la chiave API (lo completiamo nel pezzo 2) -->
+    <section class="riquadro">
+      <h2>Chiave API</h2>
+      <p id="stato-chiave" class="nota">Non ancora impostata.</p>
+    </section>
+
+    <!-- Riquadro 2: i criteri decisi al punto 3, solo da leggere -->
+    <section class="riquadro">
+      <h2>Cosa cerco</h2>
+      <ul class="criteri">
+        <li>Portatili Copilot+ PC (chip AI / NPU)</li>
+        <li>Almeno 32 GB di RAM e 1 TB di SSD</li>
+        <li>Fino a 3.000 €, IVA inclusa</li>
+        <li>Negozi online italiani</li>
+      </ul>
+    </section>
+
+    <!-- Il pulsante di ricerca: per ora spento, lo accendiamo nel pezzo 3 -->
+    <button id="cerca" disabled>Cerca offerte</button>
+    <p id="messaggio" class="nota centrato"></p>
+
+    <!-- Qui compariranno le 3 schede con le offerte (pezzo 4) -->
+    <section id="risultati"></section>
+  </main>
+
+  <!-- Il programma sta in un file a parte, caricato per ultimo -->
+  <script src="app.js"></script>
 </body>
 </html>
