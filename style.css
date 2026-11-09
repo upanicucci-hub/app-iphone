@@ -117,6 +117,20 @@ input {
   color: var(--testo);
 }
 
+a {
+  color: var(--blu);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+#risultati {
+  margin-top: 16px;
+}
+
+#risultati p {
+  margin: 0 0 6px;
+}
+
 .errore {
   color: #ff3b30;
   font-size: 15px;

@@ -99,6 +99,8 @@ function aggiornaRiquadroChiave() {
     boxSalvata.hidden = true;
     campoChiave.value = "";
   }
+  // Accendo o spengo il pulsante "Cerca offerte" (la funzione è più sotto)
+  aggiornaPulsante();
 }
 
 document.getElementById("salva-chiave").addEventListener("click", function () {
@@ -126,5 +128,193 @@ document.getElementById("cancella-chiave").addEventListener("click", function ()
 
 aggiornaRiquadroChiave();
 
-// Per ora mostro solo un messaggio. Nel pezzo 3 qui metteremo la ricerca vera.
-messaggio.textContent = "Versione " + versioneAttuale + ". La ricerca arriverà nel prossimo pezzo.";
+
+// ===== 3. La ricerca con Claude =====
+const risultati = document.getElementById("risultati");
+
+// Le istruzioni per Claude: sono i criteri decisi al punto 3.
+const ISTRUZIONI = `Cerca sul web i 3 migliori portatili Copilot+ PC acquistabili ADESSO in Italia, con il miglior rapporto qualità/prezzo.
+
+Requisiti obbligatori:
+- portatile (non fisso), certificato Copilot+ PC (NPU da almeno 40 TOPS: Snapdragon X, Intel Core Ultra 200V/300, AMD Ryzen AI)
+- almeno 32 GB di RAM e almeno 1 TB di SSD
+- prezzo fino a 3.000 €, IVA inclusa
+- nuovo (non ricondizionato), tastiera italiana
+- venduto da un negozio online italiano (Amazon.it, MediaWorld, Unieuro, Euronics, siti ufficiali delle marche) con spedizione in Italia
+
+Uso previsto: lavoro generale, programmazione, foto e video.
+Controlla che prezzo e disponibilità siano attuali. Il link deve portare alla pagina del prodotto nel negozio.
+
+Alla fine rispondi SOLO con un oggetto JSON, senza altro testo, in questo formato:
+{"offerte": [{"nome": "...", "prezzo": "1.799 €", "negozio": "...", "link": "https://...", "motivo": "una o due frasi in italiano"}]}`;
+
+// Prezzi di Sonnet 5.5 in dollari, per stimare il costo di ogni ricerca
+const COSTO_INPUT = 2 / 1000000;     // $ per token letto
+const COSTO_OUTPUT = 10 / 1000000;   // $ per token scritto
+const COSTO_RICERCA_WEB = 0.01;      // $ per ogni ricerca web
+
+// Una singola chiamata all'API di Claude.
+// fetch() è come requests.post() in Python.
+async function chiamaClaude(chiave, messaggi) {
+  const risposta = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": chiave,
+      "anthropic-version": "2026-10-21",
+      // Serve per chiamare l'API direttamente da una pagina web.
+      // "dangerous" perché la chiave sta nel browser: va bene qui,
+      // perché la chiave è solo tua e solo sul tuo iPhone.
+      "anthropic-dangerous-direct-browser-access": "true",
+      // Se Claude rifiuta la richiesta per errore, il server riprova da solo con un altro modello
+      "anthropic-beta": "server-side-fallback-2026-07-01",
+    },
+    // JSON.stringify trasforma l'oggetto in testo JSON (come json.dumps in Python)
+    body: JSON.stringify({
+      model: "claude-sonnet-5-5",
+      max_tokens: 16000,
+      output_config: { effort: "medium" },
+      fallbacks: "default",
+      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }],
+      messages: messaggi,
+    }),
+  });
+
+  const dati = await risposta.json();
+
+  if (!risposta.ok) {
+    // Traduco gli errori più comuni in messaggi comprensibili
+    const testo = (dati.error && dati.error.message) || "";
+    if (risposta.status === 401) throw new Error("La chiave API non è valida. Cancellala e inseriscila di nuovo.");
+    if (testo.toLowerCase().includes("credit")) throw new Error("Credito finito o limite di spesa raggiunto. Controlla la console Anthropic.");
+    if (risposta.status === 429) throw new Error("Troppe richieste in poco tempo. Riprova tra un minuto.");
+    if (risposta.status >= 500) throw new Error("Il servizio di Claude è momentaneamente sovraccarico. Riprova tra poco.");
+    throw new Error("Errore " + risposta.status + ": " + testo);
+  }
+  return dati;
+}
+
+// Fa la ricerca completa e restituisce { offerte, costo }
+async function cercaOfferte(chiave) {
+  const messaggi = [{ role: "user", content: ISTRUZIONI }];
+  let costo = 0;
+  let dati;
+
+  // Le ricerche web lunghe possono "mettersi in pausa" (pause_turn):
+  // in quel caso rimando la conversazione e Claude continua da dove era rimasto.
+  for (let giro = 0; giro < 4; giro++) {
+    dati = await chiamaClaude(chiave, messaggi);
+
+    const uso = dati.usage || {};
+    const ricercheWeb = (uso.server_tool_use && uso.server_tool_use.web_search_requests) || 0;
+    costo += (uso.input_tokens || 0) * COSTO_INPUT
+           + (uso.output_tokens || 0) * COSTO_OUTPUT
+           + ricercheWeb * COSTO_RICERCA_WEB;
+
+    if (dati.stop_reason !== "pause_turn") break;
+    messaggi.push({ role: "assistant", content: dati.content });
+  }
+
+  if (dati.stop_reason === "refusal") {
+    throw new Error("Claude non ha potuto completare questa ricerca. Riprova.");
+  }
+
+  // Unisco tutti i pezzi di testo della risposta
+  const testo = dati.content
+    .filter((blocco) => blocco.type === "text")
+    .map((blocco) => blocco.text)
+    .join("");
+
+  return { offerte: estraiOfferte(testo), costo: costo };
+}
+
+// Tira fuori il JSON dalla risposta, anche se Claude ci ha messo testo intorno
+function estraiOfferte(testo) {
+  const inizio = testo.indexOf("{");
+  const fine = testo.lastIndexOf("}");
+  if (inizio === -1 || fine === -1) {
+    throw new Error("Risposta di Claude non leggibile. Riprova.");
+  }
+  try {
+    const oggetto = JSON.parse(testo.slice(inizio, fine + 1));   // come json.loads
+    return oggetto.offerte || [];
+  } catch (errore) {
+    throw new Error("Risposta di Claude non leggibile. Riprova.");
+  }
+}
+
+// Mostra le offerte come elenco semplice (nel pezzo 4 diventeranno schede)
+function mostraOfferte(offerte) {
+  risultati.textContent = "";   // svuoto i risultati precedenti
+
+  if (offerte.length === 0) {
+    risultati.textContent = "Nessuna offerta trovata con questi criteri.";
+    return;
+  }
+
+  // Creo gli elementi uno per uno con textContent: così il testo che arriva
+  // da internet viene sempre mostrato come testo e mai eseguito come codice.
+  offerte.forEach(function (offerta, i) {
+    const riquadro = document.createElement("div");
+    riquadro.className = "riquadro";
+
+    const titolo = document.createElement("h2");
+    titolo.textContent = (i + 1) + ". " + (offerta.nome || "");
+    riquadro.appendChild(titolo);
+
+    const dettagli = document.createElement("p");
+    dettagli.textContent = (offerta.prezzo || "") + " – " + (offerta.negozio || "");
+    riquadro.appendChild(dettagli);
+
+    const motivo = document.createElement("p");
+    motivo.className = "nota";
+    motivo.textContent = offerta.motivo || "";
+    riquadro.appendChild(motivo);
+
+    // Mostro il link solo se è un vero indirizzo web sicuro
+    if (typeof offerta.link === "string" && offerta.link.startsWith("https://")) {
+      const link = document.createElement("a");
+      link.href = offerta.link;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "Vai al negozio →";
+      riquadro.appendChild(link);
+    }
+
+    risultati.appendChild(riquadro);
+  });
+}
+
+// Il pulsante "Cerca offerte"
+pulsanteCerca.addEventListener("click", async function () {
+  const chiave = leggiChiave();
+  if (!chiave) {
+    messaggio.textContent = "Prima salva la chiave API.";
+    return;
+  }
+
+  pulsanteCerca.disabled = true;
+  risultati.textContent = "";
+  messaggio.textContent = "🔎 Claude sta cercando… può volerci un minuto o due.";
+
+  try {
+    const esito = await cercaOfferte(chiave);
+    mostraOfferte(esito.offerte);
+    messaggio.textContent = "Costo di questa ricerca: circa " + esito.costo.toFixed(2) + " $";
+  } catch (errore) {
+    messaggio.textContent = "⚠️ " + errore.message;
+  } finally {
+    // "finally" viene eseguito sempre, come in Python
+    pulsanteCerca.disabled = false;
+  }
+});
+
+// Il pulsante si accende solo se c'è una chiave salvata
+function aggiornaPulsante() {
+  pulsanteCerca.disabled = !leggiChiave();
+  if (!leggiChiave()) {
+    messaggio.textContent = "Salva la chiave API per poter cercare.";
+  } else {
+    messaggio.textContent = "Versione " + versioneAttuale + ". Pronto a cercare.";
+  }
+}
