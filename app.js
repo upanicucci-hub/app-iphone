@@ -145,10 +145,14 @@ Requisiti obbligatori:
 Uso previsto: lavoro generale, programmazione, foto e video.
 
 Come lavorare (hai al massimo 6 ricerche web e 6 pagine da aprire, usale bene):
-1. Con web_search trova le schede prodotto dei negozi (non articoli di giornale).
-2. Con web_fetch apri le schede prodotto più promettenti e controlla lì prezzo, RAM, SSD,
-   tastiera e disponibilità.
+1. Con web_search, scrivendo le ricerche in italiano, trova le schede prodotto. Un buon punto
+   di partenza sono trovaprezzi.it e idealo.it: una pagina mostra i prezzi di molti negozi.
+2. Con web_fetch apri le schede più promettenti e controlla lì prezzo, RAM, SSD,
+   tastiera e disponibilità. Puoi aprire SOLO indirizzi copiati esattamente dai risultati
+   di ricerca o dalle pagine già aperte: non inventare né modificare gli indirizzi.
+   Se una pagina non si apre, passa alla successiva.
 3. Il link di ogni offerta deve essere la scheda prodotto che hai aperto.
+4. Preferisci negozi che vendono direttamente rispetto ai venditori di marketplace.
 
 Restituisci sempre 3 offerte. Se non ne trovi 3 che rispettano TUTTI i requisiti, completa la lista
 con le offerte più vicine e scrivi nel campo "compromesso" quale requisito non rispettano
@@ -157,6 +161,14 @@ con le offerte più vicine e scrivi nel campo "compromesso" quale requisito non 
 Alla fine rispondi SOLO con un oggetto JSON, senza altro testo, in questo formato:
 {"nota": "una frase in italiano sulla situazione del mercato o sulle difficoltà incontrate",
  "offerte": [{"nome": "...", "prezzo": "1.799 €", "negozio": "...", "link": "https://...", "motivo": "una o due frasi in italiano", "compromesso": ""}]}`;
+
+// I siti dove Claude può cercare: negozi italiani, comparatori di prezzi
+// italiani (una pagina mostra i prezzi di molti negozi) e siti delle marche.
+const SITI_PERMESSI = [
+  "trovaprezzi.it", "idealo.it",
+  "amazon.it", "mediaworld.it", "unieuro.it", "euronics.it", "eprice.it",
+  "lenovo.com", "hp.com", "dell.com", "microsoft.com", "asus.com", "acer.com", "samsung.com",
+];
 
 // Prezzi di Sonnet 5.5 in dollari, per stimare il costo di ogni ricerca
 const COSTO_INPUT = 2 / 1000000;     // $ per token letto
@@ -186,8 +198,15 @@ async function chiamaClaude(chiave, messaggi) {
       output_config: { effort: "medium" },
       fallbacks: "default",
       tools: [
-        // Ricerca web: al massimo 6 ricerche (1 centesimo l'una)
-        { type: "web_search_20260209", name: "web_search", max_uses: 6 },
+        // Ricerca web: al massimo 6 ricerche (1 centesimo l'una),
+        // fatta "dall'Italia" e solo sui siti di questa lista
+        {
+          type: "web_search_20260209",
+          name: "web_search",
+          max_uses: 6,
+          user_location: { type: "approximate", country: "IT", city: "Roma", timezone: "Europe/Rome" },
+          allowed_domains: SITI_PERMESSI,
+        },
         // Lettura delle pagine trovate: al massimo 6 pagine, e di ogni pagina
         // solo i primi 6000 token (circa 4.500 parole), per tenere basso il costo
         { type: "web_fetch_20260209", name: "web_fetch", max_uses: 6, max_content_tokens: 6000 },
