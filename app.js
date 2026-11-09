@@ -143,7 +143,12 @@ Requisiti obbligatori:
 - venduto da un negozio online italiano (Amazon.it, MediaWorld, Unieuro, Euronics, siti ufficiali delle marche) con spedizione in Italia
 
 Uso previsto: lavoro generale, programmazione, foto e video.
-Controlla che prezzo e disponibilità siano attuali. Il link deve portare alla pagina del prodotto nel negozio.
+
+Come lavorare (hai al massimo 6 ricerche web e 6 pagine da aprire, usale bene):
+1. Con web_search trova le schede prodotto dei negozi (non articoli di giornale).
+2. Con web_fetch apri le schede prodotto più promettenti e controlla lì prezzo, RAM, SSD,
+   tastiera e disponibilità.
+3. Il link di ogni offerta deve essere la scheda prodotto che hai aperto.
 
 Restituisci sempre 3 offerte. Se non ne trovi 3 che rispettano TUTTI i requisiti, completa la lista
 con le offerte più vicine e scrivi nel campo "compromesso" quale requisito non rispettano
@@ -180,8 +185,13 @@ async function chiamaClaude(chiave, messaggi) {
       max_tokens: 16000,
       output_config: { effort: "medium" },
       fallbacks: "default",
-      // Al massimo 8 ricerche web per ogni domanda (circa 8 centesimi)
-      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 8 }],
+      tools: [
+        // Ricerca web: al massimo 6 ricerche (1 centesimo l'una)
+        { type: "web_search_20260209", name: "web_search", max_uses: 6 },
+        // Lettura delle pagine trovate: al massimo 6 pagine, e di ogni pagina
+        // solo i primi 6000 token (circa 4.500 parole), per tenere basso il costo
+        { type: "web_fetch_20260209", name: "web_fetch", max_uses: 6, max_content_tokens: 6000 },
+      ],
       messages: messaggi,
     }),
   });
@@ -205,12 +215,12 @@ async function cercaOfferte(chiave) {
   const messaggi = [{ role: "user", content: ISTRUZIONI }];
   let costo = 0;
   let dati;
-  // Per capire come è andata la ricerca web: quante riuscite e quali errori
-  const ricerche = { riuscite: 0, errori: {} };
+  // Per capire come è andata: ricerche riuscite, pagine aperte e quali errori
+  const ricerche = { riuscite: 0, pagine: 0, errori: {} };
 
   // Le ricerche web lunghe possono "mettersi in pausa" (pause_turn):
   // in quel caso rimando la conversazione e Claude continua da dove era rimasto.
-  for (let giro = 0; giro < 4; giro++) {
+  for (let giro = 0; giro < 6; giro++) {
     dati = await chiamaClaude(chiave, messaggi);
 
     const uso = dati.usage || {};
@@ -219,14 +229,23 @@ async function cercaOfferte(chiave) {
            + (uso.output_tokens || 0) * COSTO_OUTPUT
            + ricercheWeb * COSTO_RICERCA_WEB;
 
-    // Ogni risultato di ricerca web è una lista di pagine se è andato bene,
-    // oppure un oggetto con "error_code" se è andato storto.
+    // Ogni risultato di ricerca web è una lista di pagine se è andato bene;
+    // ogni pagina aperta è un oggetto "web_fetch_result" se è andata bene.
+    // Se qualcosa va storto, al loro posto c'è un oggetto con "error_code".
     dati.content.forEach(function (blocco) {
-      if (blocco.type !== "web_search_tool_result") return;
-      if (Array.isArray(blocco.content)) {
-        ricerche.riuscite++;
+      const contenuto = blocco.content;
+      let riuscito;
+      if (blocco.type === "web_search_tool_result") {
+        riuscito = Array.isArray(contenuto);
+        if (riuscito) ricerche.riuscite++;
+      } else if (blocco.type === "web_fetch_tool_result") {
+        riuscito = contenuto && contenuto.type === "web_fetch_result";
+        if (riuscito) ricerche.pagine++;
       } else {
-        const codice = (blocco.content && blocco.content.error_code) || "sconosciuto";
+        return;   // non è un risultato di ricerca o di lettura: lo salto
+      }
+      if (!riuscito) {
+        const codice = (contenuto && contenuto.error_code) || "sconosciuto";
         ricerche.errori[codice] = (ricerche.errori[codice] || 0) + 1;
       }
     });
@@ -345,7 +364,8 @@ pulsanteCerca.addEventListener("click", async function () {
     mostraOfferte(esito.nota, esito.offerte);
     // Riepilogo: costo e come sono andate le ricerche web
     let riepilogo = "Costo di questa ricerca: circa " + esito.costo.toFixed(2) + " $"
-                  + " · Ricerche web riuscite: " + esito.ricerche.riuscite;
+                  + " · Ricerche web: " + esito.ricerche.riuscite
+                  + " · Pagine aperte: " + esito.ricerche.pagine;
     // Object.entries è come dict.items() in Python
     Object.entries(esito.ricerche.errori).forEach(function ([codice, quante]) {
       riepilogo += " · Errore " + codice + ": " + quante;
