@@ -12,12 +12,12 @@
   <title>Offerte PC AI</title>
   <!-- Numero di versione dell'app. Ogni volta che pubblichiamo una modifica
        lo aumentiamo qui, in tutti i "?v=" di questo file e in versione.json. -->
-  <meta name="versione" content="10">
+  <meta name="versione" content="11">
   <!-- L'icona che compare sulla schermata Home (180x180 pixel) e nella scheda del browser -->
-  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=10">
-  <link rel="icon" type="image/png" href="apple-touch-icon.png?v=10">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=11">
+  <link rel="icon" type="image/png" href="apple-touch-icon.png?v=11">
   <!-- L'aspetto grafico sta in un file a parte -->
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
   <header>
@@ -57,15 +57,22 @@
       </ul>
     </section>
 
-    <!-- Il pulsante di ricerca: per ora spento, lo accendiamo nel pezzo 3 -->
+    <!-- Riquadro 3: quanto ho speso questo mese (stima calcolata dall'app) -->
+    <section class="riquadro">
+      <h2>Spesa di questo mese</h2>
+      <div class="barra"><div id="barra-spesa"></div></div>
+      <p id="testo-spesa" class="nota"></p>
+    </section>
+
+    <!-- Il pulsante di ricerca: si accende quando c'è una chiave salvata -->
     <button id="cerca" disabled>Cerca offerte</button>
     <p id="messaggio" class="nota centrato"></p>
 
-    <!-- Qui compariranno le 3 schede con le offerte (pezzo 4) -->
+    <!-- Qui compaiono le 3 schede con le offerte -->
     <section id="risultati"></section>
   </main>
 
   <!-- Il programma sta in un file a parte, caricato per ultimo -->
-  <script src="app.js?v=10"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>

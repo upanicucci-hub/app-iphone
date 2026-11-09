@@ -135,6 +135,35 @@ a {
   margin-top: 16px;
 }
 
+/* ===== Barra della spesa del mese ===== */
+.barra {
+  height: 10px;
+  background: var(--sfondo);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+#barra-spesa {
+  height: 100%;
+  width: 0;
+  background: var(--blu);
+  border-radius: 5px;
+  transition: width 0.5s;
+}
+
+/* Quando la spesa supera l'80% del limite la barra diventa arancione */
+#barra-spesa.quasi-finito {
+  background: var(--arancio);
+}
+
+.data-ricerca {
+  text-align: center;
+  color: var(--testo-secondario);
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
 /* ===== Nota di Claude sopra i risultati ===== */
 .nota-claude {
   background: var(--riquadro);

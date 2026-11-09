@@ -317,9 +317,17 @@ function crea(tag, classe, testo) {
   return elemento;
 }
 
-// Mostra le offerte come schede
-function mostraOfferte(nota, offerte) {
+// Mostra le offerte come schede.
+// "quando" (facoltativo) è la data della ricerca, per i risultati salvati.
+function mostraOfferte(nota, offerte, quando) {
   risultati.textContent = "";   // svuoto i risultati precedenti
+
+  if (quando) {
+    const data = new Date(quando).toLocaleString("it-IT", {
+      day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+    });
+    risultati.appendChild(crea("p", "data-ricerca", "🕒 Ricerca del " + data));
+  }
 
   // La nota di Claude sulla situazione (es. "pochi modelli con 32 GB sotto i 3.000 €")
   if (nota) {
@@ -373,7 +381,72 @@ function mostraOfferte(nota, offerte) {
   });
 }
 
-// Il pulsante "Cerca offerte"
+
+// ===== 4. Memoria dell'app: spesa del mese e ultima ricerca =====
+// Salvo oggetti nella memoria dell'iPhone trasformandoli in testo JSON.
+function leggiDati(nome) {
+  try {
+    return JSON.parse(localStorage.getItem(nome));   // null se non c'è
+  } catch (errore) {
+    return null;
+  }
+}
+
+function salvaDati(nome, valore) {
+  try {
+    localStorage.setItem(nome, JSON.stringify(valore));
+  } catch (errore) {
+    // memoria non disponibile: pazienza, l'app funziona lo stesso
+  }
+}
+
+// Lo stesso limite impostato nella console Anthropic
+const LIMITE_MENSILE = 5;
+
+// Il mese di oggi come testo, per esempio "2026-11"
+function meseAttuale() {
+  return new Date().toISOString().slice(0, 7);
+}
+
+// La spesa del mese: se è cambiato mese, si riparte da zero
+function leggiSpesa() {
+  const spesa = leggiDati("spesa-mese");
+  if (!spesa || spesa.mese !== meseAttuale()) {
+    return { mese: meseAttuale(), totale: 0, ricerche: 0 };
+  }
+  return spesa;
+}
+
+function aggiungiSpesa(costo) {
+  const spesa = leggiSpesa();
+  spesa.totale += costo;
+  spesa.ricerche += 1;
+  salvaDati("spesa-mese", spesa);
+  mostraSpesa();
+}
+
+function mostraSpesa() {
+  const spesa = leggiSpesa();
+  const percentuale = Math.min(100, (spesa.totale / LIMITE_MENSILE) * 100);
+  const barra = document.getElementById("barra-spesa");
+  barra.style.width = percentuale + "%";
+  // classList.toggle aggiunge la classe se la condizione è vera, altrimenti la toglie
+  barra.classList.toggle("quasi-finito", percentuale >= 80);
+
+  const restante = Math.max(0, LIMITE_MENSILE - spesa.totale);
+  document.getElementById("testo-spesa").textContent =
+    "Circa " + spesa.totale.toFixed(2) + " $ su " + LIMITE_MENSILE + " $ · "
+    + quanteRicerche(spesa.ricerche) + " fatte · ne restano circa "
+    + Math.floor(restante / 0.45);
+}
+
+// "1 ricerca", "2 ricerche": singolare o plurale
+function quanteRicerche(numero) {
+  return numero + (numero === 1 ? " ricerca" : " ricerche");
+}
+
+
+// ===== 5. Il pulsante "Cerca offerte" =====
 pulsanteCerca.addEventListener("click", async function () {
   const chiave = leggiChiave();
   if (!chiave) {
@@ -383,11 +456,30 @@ pulsanteCerca.addEventListener("click", async function () {
 
   pulsanteCerca.disabled = true;
   risultati.textContent = "";
-  messaggio.textContent = "🔎 Claude sta cercando… può volerci un minuto o due.";
+
+  // Cronometro: ogni secondo aggiorno il messaggio con il tempo trascorso
+  const inizio = Date.now();
+  function aggiornaAttesa() {
+    const secondi = Math.floor((Date.now() - inizio) / 1000);
+    const tempo = Math.floor(secondi / 60) + ":" + String(secondi % 60).padStart(2, "0");
+    messaggio.textContent = "🔎 Claude sta cercando… " + tempo + " · tieni l'app aperta (di solito 2–3 minuti)";
+  }
+  aggiornaAttesa();
+  const cronometro = setInterval(aggiornaAttesa, 1000);
+
+  // Chiedo all'iPhone di non spegnere lo schermo durante la ricerca
+  let schermoAcceso = null;
+  try {
+    schermoAcceso = await navigator.wakeLock.request("screen");
+  } catch (errore) {
+    // non supportato: pazienza
+  }
 
   try {
     const esito = await cercaOfferte(chiave);
     mostraOfferte(esito.nota, esito.offerte);
+    aggiungiSpesa(esito.costo);
+
     // Riepilogo: costo e come sono andate le ricerche web
     let riepilogo = "Costo di questa ricerca: circa " + esito.costo.toFixed(2) + " $"
                   + " · Ricerche web: " + esito.ricerche.riuscite
@@ -396,11 +488,22 @@ pulsanteCerca.addEventListener("click", async function () {
     Object.entries(esito.ricerche.errori).forEach(function ([codice, quante]) {
       riepilogo += " · Errore " + codice + ": " + quante;
     });
+    clearInterval(cronometro);
     messaggio.textContent = riepilogo;
+
+    // Salvo i risultati, così riaprendo l'app li ritrovo
+    salvaDati("ultima-ricerca", {
+      quando: new Date().toISOString(),
+      nota: esito.nota,
+      offerte: esito.offerte,
+    });
   } catch (errore) {
+    clearInterval(cronometro);
     messaggio.textContent = "⚠️ " + errore.message;
   } finally {
     // "finally" viene eseguito sempre, come in Python
+    clearInterval(cronometro);
+    if (schermoAcceso) schermoAcceso.release();
     pulsanteCerca.disabled = false;
   }
 });
@@ -413,4 +516,11 @@ function aggiornaPulsante() {
   } else {
     messaggio.textContent = "Versione " + versioneAttuale + ". Pronto a cercare.";
   }
+}
+
+// All'apertura: mostro la spesa del mese e l'ultima ricerca salvata
+mostraSpesa();
+const ultima = leggiDati("ultima-ricerca");
+if (ultima && ultima.offerte) {
+  mostraOfferte(ultima.nota, ultima.offerte, ultima.quando);
 }
