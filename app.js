@@ -146,7 +146,7 @@ Uso previsto: lavoro generale, programmazione, foto e video.
 
 Come lavorare (hai al massimo 6 ricerche web e 6 pagine da aprire, usale bene):
 1. Con web_search, scrivendo le ricerche in italiano, trova le schede prodotto. Un buon punto
-   di partenza sono trovaprezzi.it e idealo.it: una pagina mostra i prezzi di molti negozi.
+   di partenza è trovaprezzi.it: una pagina mostra i prezzi di molti negozi.
 2. Con web_fetch apri le schede più promettenti e controlla lì prezzo, RAM, SSD,
    tastiera e disponibilità. Puoi aprire SOLO indirizzi copiati esattamente dai risultati
    di ricerca o dalle pagine già aperte: non inventare né modificare gli indirizzi.
@@ -164,8 +164,10 @@ Alla fine rispondi SOLO con un oggetto JSON, senza altro testo, in questo format
 
 // I siti dove Claude può cercare: negozi italiani, comparatori di prezzi
 // italiani (una pagina mostra i prezzi di molti negozi) e siti delle marche.
+// Attenzione: se un sito blocca Claude (come idealo.it) e lo mettiamo in lista,
+// l'API rifiuta tutta la richiesta con "Errore 400".
 const SITI_PERMESSI = [
-  "trovaprezzi.it", "idealo.it",
+  "trovaprezzi.it",
   "amazon.it", "mediaworld.it", "unieuro.it", "euronics.it", "eprice.it",
   "lenovo.com", "hp.com", "dell.com", "microsoft.com", "asus.com", "acer.com", "samsung.com",
 ];
