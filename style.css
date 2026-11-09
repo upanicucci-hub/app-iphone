@@ -8,6 +8,10 @@
   --testo-secondario: #6e6e73;
   --blu: #007aff;
   --bordo: #d1d1d6;
+  --verde: #248a3d;
+  --verde-chiaro: #e3f5e7;
+  --arancio: #b25000;
+  --arancio-chiaro: #fff1e0;
 }
 
 /* Se l'iPhone è in modalità scura, cambio solo i colori */
@@ -19,6 +23,10 @@
     --testo-secondario: #98989d;
     --blu: #0a84ff;
     --bordo: #38383a;
+    --verde: #30d158;
+    --verde-chiaro: #10301a;
+    --arancio: #ff9f0a;
+    --arancio-chiaro: #3a2508;
   }
 }
 
@@ -127,13 +135,105 @@ a {
   margin-top: 16px;
 }
 
-#risultati p {
+/* ===== Nota di Claude sopra i risultati ===== */
+.nota-claude {
+  background: var(--riquadro);
+  border-left: 4px solid var(--blu);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  color: var(--testo-secondario);
+}
+
+/* ===== Scheda di un'offerta ===== */
+.scheda {
+  background: var(--riquadro);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  /* ombra leggera, come le schede delle app Apple */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Riga in alto: numero a sinistra, etichetta a destra */
+.scheda-intestazione {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.posizione {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--blu);
+  color: white;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.etichetta {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.verificata {
+  background: var(--verde-chiaro);
+  color: var(--verde);
+}
+
+.da-controllare {
+  background: var(--arancio-chiaro);
+  color: var(--arancio);
+}
+
+.prezzo {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.negozio {
+  color: var(--testo-secondario);
+  font-size: 15px;
+  margin: 2px 0 10px;
+}
+
+.nome-pc {
+  font-size: 16px;
+  font-weight: 600;
   margin: 0 0 6px;
 }
 
-.compromesso {
-  color: #ff9500;
+.motivo {
+  color: var(--testo-secondario);
   font-size: 15px;
+  margin: 0 0 10px;
+}
+
+.compromesso {
+  background: var(--arancio-chiaro);
+  color: var(--arancio);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  margin: 0 0 10px;
+}
+
+/* Il link del negozio sembra un pulsante */
+.pulsante-negozio {
+  display: block;
+  text-align: center;
+  background: var(--sfondo);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 16px;
 }
 
 .errore {

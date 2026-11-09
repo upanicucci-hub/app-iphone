@@ -307,16 +307,23 @@ function estraiOfferte(testo) {
   }
 }
 
-// Mostra le offerte come elenco semplice (nel pezzo 4 diventeranno schede)
+// Piccolo aiuto: crea un elemento con una classe e un testo.
+// Uso sempre textContent: così il testo che arriva da internet
+// viene mostrato come testo e mai eseguito come codice.
+function crea(tag, classe, testo) {
+  const elemento = document.createElement(tag);
+  if (classe) elemento.className = classe;
+  if (testo) elemento.textContent = testo;
+  return elemento;
+}
+
+// Mostra le offerte come schede
 function mostraOfferte(nota, offerte) {
   risultati.textContent = "";   // svuoto i risultati precedenti
 
   // La nota di Claude sulla situazione (es. "pochi modelli con 32 GB sotto i 3.000 €")
   if (nota) {
-    const paragrafoNota = document.createElement("p");
-    paragrafoNota.className = "nota centrato";
-    paragrafoNota.textContent = "💬 " + nota;
-    risultati.appendChild(paragrafoNota);
+    risultati.appendChild(crea("div", "nota-claude", "💬 " + nota));
   }
 
   if (offerte.length === 0) {
@@ -327,44 +334,42 @@ function mostraOfferte(nota, offerte) {
     return;
   }
 
-  // Creo gli elementi uno per uno con textContent: così il testo che arriva
-  // da internet viene sempre mostrato come testo e mai eseguito come codice.
   offerte.forEach(function (offerta, i) {
-    const riquadro = document.createElement("div");
-    riquadro.className = "riquadro";
+    // Un'offerta è "verificata" se Claude non ha segnalato compromessi
+    const verificata = !offerta.compromesso;
+    const scheda = crea("article", "scheda");
 
-    const titolo = document.createElement("h2");
-    titolo.textContent = (i + 1) + ". " + (offerta.nome || "");
-    riquadro.appendChild(titolo);
+    // Riga in alto: numero in classifica + etichetta verde o arancione
+    const intestazione = crea("div", "scheda-intestazione");
+    intestazione.appendChild(crea("span", "posizione", String(i + 1)));
+    intestazione.appendChild(verificata
+      ? crea("span", "etichetta verificata", "✅ Verificato")
+      : crea("span", "etichetta da-controllare", "⚠️ Da controllare"));
+    scheda.appendChild(intestazione);
 
-    const dettagli = document.createElement("p");
-    dettagli.textContent = (offerta.prezzo || "") + " – " + (offerta.negozio || "");
-    riquadro.appendChild(dettagli);
+    // Prezzo grande e negozio
+    scheda.appendChild(crea("div", "prezzo", offerta.prezzo || "Prezzo non indicato"));
+    scheda.appendChild(crea("div", "negozio", "🏬 " + (offerta.negozio || "Negozio non indicato")));
 
-    const motivo = document.createElement("p");
-    motivo.className = "nota";
-    motivo.textContent = offerta.motivo || "";
-    riquadro.appendChild(motivo);
+    // Nome del PC e motivo della scelta
+    scheda.appendChild(crea("h3", "nome-pc", offerta.nome || ""));
+    scheda.appendChild(crea("p", "motivo", offerta.motivo || ""));
 
     // Se l'offerta non rispetta tutti i requisiti, lo dico chiaramente
-    if (offerta.compromesso) {
-      const compromesso = document.createElement("p");
-      compromesso.className = "compromesso";
-      compromesso.textContent = "⚠️ Compromesso: " + offerta.compromesso;
-      riquadro.appendChild(compromesso);
+    if (!verificata) {
+      scheda.appendChild(crea("p", "compromesso", offerta.compromesso));
     }
 
-    // Mostro il link solo se è un vero indirizzo web sicuro
+    // Pulsante del negozio, solo se il link è un vero indirizzo web sicuro
     if (typeof offerta.link === "string" && offerta.link.startsWith("https://")) {
-      const link = document.createElement("a");
+      const link = crea("a", "pulsante-negozio", "Apri su " + (offerta.negozio || "negozio") + " →");
       link.href = offerta.link;
       link.target = "_blank";
       link.rel = "noopener";
-      link.textContent = "Vai al negozio →";
-      riquadro.appendChild(link);
+      scheda.appendChild(link);
     }
 
-    risultati.appendChild(riquadro);
+    risultati.appendChild(scheda);
   });
 }
 
