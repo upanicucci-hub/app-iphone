@@ -94,3 +94,35 @@ button {
 button:disabled {
   opacity: 0.4;
 }
+
+/* Pulsante "di secondo piano", per esempio Cancella */
+button.secondario {
+  background: transparent;
+  color: #ff3b30;
+  border: 1px solid var(--bordo);
+  margin-top: 8px;
+}
+
+/* ===== Casella di testo per la chiave ===== */
+input {
+  box-sizing: border-box;
+  width: 100%;
+  /* 16px o più: sotto questa misura l'iPhone fa lo zoom automatico sulla casella */
+  font-size: 16px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--bordo);
+  border-radius: 10px;
+  background: var(--sfondo);
+  color: var(--testo);
+}
+
+.errore {
+  color: #ff3b30;
+  font-size: 15px;
+  margin: 8px 0 0;
+}
+
+.errore:empty {
+  display: none;
+}

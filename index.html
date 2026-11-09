@@ -10,8 +10,11 @@
   <meta name="apple-mobile-web-app-title" content="Offerte PC AI">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Offerte PC AI</title>
+  <!-- Numero di versione dell'app. Ogni volta che pubblichiamo una modifica
+       lo aumentiamo qui, nei due "?v=" qui sotto e in versione.json. -->
+  <meta name="versione" content="2">
   <!-- L'aspetto grafico sta in un file a parte -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
   <header>
@@ -20,10 +23,24 @@
   </header>
 
   <main>
-    <!-- Riquadro 1: la chiave API (lo completiamo nel pezzo 2) -->
+    <!-- Riquadro 1: la chiave API, salvata solo su questo iPhone -->
     <section class="riquadro">
       <h2>Chiave API</h2>
-      <p id="stato-chiave" class="nota">Non ancora impostata.</p>
+
+      <!-- Si vede quando la chiave NON è ancora salvata -->
+      <div id="chiave-da-inserire">
+        <input id="campo-chiave" type="password" placeholder="Incolla qui la chiave sk-ant-..."
+               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button id="salva-chiave">Salva chiave</button>
+      </div>
+
+      <!-- Si vede quando la chiave È salvata -->
+      <div id="chiave-salvata" hidden>
+        <p class="nota">✅ Chiave salvata: <span id="chiave-finale"></span></p>
+        <button id="cancella-chiave" class="secondario">Cancella chiave</button>
+      </div>
+
+      <p id="errore-chiave" class="errore"></p>
     </section>
 
     <!-- Riquadro 2: i criteri decisi al punto 3, solo da leggere -->
@@ -46,6 +63,6 @@
   </main>
 
   <!-- Il programma sta in un file a parte, caricato per ultimo -->
-  <script src="app.js"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>
